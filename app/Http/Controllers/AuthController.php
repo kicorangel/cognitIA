@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ThinkingRole;
+use App\Support\DefaultThinkingRoles;
 
 class AuthController extends Controller
 {
@@ -51,6 +53,19 @@ class AuthController extends Controller
             'email' => $data['email'],
             'password' => $data['password'],
         ]);
+
+        foreach (DefaultThinkingRoles::cognitiveHat() as $role) {
+            ThinkingRole::create([
+                'user_id' => $user->id,
+                'model_key' => 'cognitive_hat',
+                'code' => $role['code'],
+                'name' => $role['name'],
+                'title' => $role['title'],
+                'profile_prompt' => $role['profile_prompt'],
+                'is_active' => true,
+                'sort_order' => $role['sort_order'],
+            ]);
+        }
 
         Auth::login($user);
 
