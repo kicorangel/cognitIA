@@ -55,8 +55,23 @@ class CognitiveHatController extends Controller
                     ->with('error', 'The engine returned an error: ' . $response->body());
             }
 
+            $result = $response->json();
+
+            $exportPayload = [
+                'metadata' => [
+                    'generated_by' => 'cognitIA',
+                    'generated_at' => now()->toIso8601String(),
+                    'user_id' => auth()->id(),
+                    'model_key' => 'cognitive_hat',
+                    'engine_url' => $apiUrl,
+                ],
+                'request' => $payload,
+                'response' => $result,
+            ];
+
             return view('cognitive-hat.index', [
-                'result' => $response->json(),
+                'result' => $result,
+                'exportPayload' => $exportPayload,
             ]);
         } catch (\Throwable $e) {
             return back()
