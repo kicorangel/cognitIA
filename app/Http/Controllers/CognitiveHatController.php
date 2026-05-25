@@ -25,17 +25,17 @@ class CognitiveHatController extends Controller
             ->where('model_key', 'cognitive_hat')
             ->where('is_active', true)
             ->orderBy('sort_order')
+            ->orderBy('name')
             ->get();
 
         if ($roles->isEmpty()) {
             return back()
                 ->withInput()
-                ->with('error', 'No active thinking roles found for your user. Please configure at least one role before running the analysis.');
+                ->with('error', 'No active thinking roles found. Please create or activate at least one role before running the analysis.');
         }
 
         $payload = [
             'idea' => $request->input('idea'),
-
             'roles' => $roles->map(fn ($role) => [
                 'code' => $role->code,
                 'name' => $role->name,
@@ -47,7 +47,7 @@ class CognitiveHatController extends Controller
         $apiUrl = rtrim(config('services.cognitive_hat.url'), '/') . '/analyze';
 
         try {
-            $response = Http::timeout(600)->post($apiUrl, $payload);
+            $response = Http::timeout(900)->post($apiUrl, $payload);
 
             if (! $response->successful()) {
                 return back()

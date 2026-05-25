@@ -35,6 +35,6 @@ return [
         ],
     ],
     'cognitive_hat' => [
-        'url' => env('COGNITIVE_HAT_API_URL', 'http://127.0.0.1:8000'),
+        'url' => env('COGNITIVE_HAT_API_URL', 'http://localhost:8001'),
     ],
 ];
