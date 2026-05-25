@@ -1,6 +1,6 @@
-# Cognitive Board UI
+# cognitIA - Strategic Cognitive Board
 
-Frontend for the **Cognitive Board**: a multi-agent decision interface designed to make executive reasoning visible, traceable, and actionable.
+Frontend for the **Strategic Cognitive Board of cognitIA**: a multi-agent decision interface designed to make executive reasoning visible, traceable, and actionable.
 
 This UI is not a generic chat frontend. It is the presentation layer of a structured reasoning system in which **organisational roles** operate under **Six Thinking Hats** as controlled reasoning protocols, with transparent orchestration and governed synthesis. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}
 

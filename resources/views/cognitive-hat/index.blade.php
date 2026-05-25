@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cognitive Hat</title>
+    <title>cognitIA</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -470,11 +470,11 @@
     <div class="max-w-7xl mx-auto px-6 py-12">
         <div class="mb-8">
             <p class="text-sm uppercase tracking-[0.2em] text-cyan-300 mb-3">
-                Cognitive Hat
+                cognitIA
             </p>
 
             <h1 class="text-4xl font-bold mb-4">
-                Executive Decision Cockpit
+                Strategic Decision Cockpit
             </h1>
 
             <p class="text-slate-300 text-lg leading-8 max-w-4xl">
