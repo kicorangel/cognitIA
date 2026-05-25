@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CognitiveHatController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\ThinkingRoleController;
 
 
 Route::get('/', function () {
@@ -35,6 +36,11 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/cognitive-hat/analyze', [CognitiveHatController::class, 'analyze'])
         ->name('cognitive-hat.analyze');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('thinking-roles', ThinkingRoleController::class)
+            ->except(['show']);
+    });
 });
 
 Route::get('/up', function () {

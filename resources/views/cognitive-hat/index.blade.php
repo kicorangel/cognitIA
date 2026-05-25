@@ -485,6 +485,13 @@
                 </p>
             </div>
 
+            <a
+                href="{{ route('admin.thinking-roles.index') }}"
+                class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition"
+            >
+                Manage roles
+            </a>
+
             @if (auth()->check())
                 <form method="POST" action="{{ route('logout') }}" class="pt-2">
                     @csrf
