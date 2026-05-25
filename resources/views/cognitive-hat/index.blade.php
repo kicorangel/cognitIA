@@ -468,21 +468,35 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen">
     <div class="max-w-7xl mx-auto px-6 py-12">
-        <div class="mb-8">
-            <p class="text-sm uppercase tracking-[0.2em] text-cyan-300 mb-3">
-                cognitIA
-            </p>
+        <header class="mb-8 flex items-start justify-between gap-6">
+            <div>
+                <div class="text-cyan-400 text-sm tracking-[0.35em] uppercase mb-4">
+                    COGNITIA
+                </div>
 
-            <h1 class="text-4xl font-bold mb-4">
-                Strategic Decision Cockpit
-            </h1>
+                <h1 class="text-4xl font-bold mb-6">
+                    Strategic Decision Cockpit
+                </h1>
 
-            <p class="text-slate-300 text-lg leading-8 max-w-4xl">
-                Describe a strategic idea, opportunity, or dilemma in your own words.
-                The system will interpret it, activate the relevant executive roles,
-                and return a structured recommendation.
-            </p>
-        </div>
+                <p class="max-w-3xl text-lg leading-8 text-slate-100">
+                    Describe a strategic idea, opportunity, or dilemma in your own words.
+                    The system will interpret it, activate the relevant executive roles,
+                    and return a structured recommendation.
+                </p>
+            </div>
+
+            @if (auth()->check())
+                <form method="POST" action="{{ route('logout') }}" class="pt-2">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition"
+                    >
+                        Logout
+                    </button>
+                </form>
+            @endif
+        </header>
 
         @if(session('error'))
             <div class="mb-6 rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-red-200">
