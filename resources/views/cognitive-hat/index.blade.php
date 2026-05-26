@@ -453,11 +453,11 @@
 
 
         .recommendation-value {
-            font-size: clamp(1.75rem, 3vw, 3rem);
-            line-height: 1.08;
-            letter-spacing: -0.03em;
+            font-size: clamp(1.2rem, 2vw, 2.1rem);
+            line-height: 1.12;
+            letter-spacing: -0.02em;
             overflow-wrap: anywhere;
-            word-break: normal;
+            word-break: break-word;
         }
 
         .thinking-timer {
@@ -649,7 +649,7 @@
                             $nextSteps = $state['next_steps'] ?? [];
                             $risks = $state['risks'] ?? [];
                             $openQuestions = $state['open_questions'] ?? [];
-                            $outputs = $state['outputs'] ?? [];
+                            $outputs = $state['outputs'] ?? [];$outputs = $state['outputs'] ?? [];
                             $configuredRoles = collect($state['roles'] ?? [])->pluck('code')->filter()->values()->all();
                             $outputRoles = collect($outputs)
                                 ->flatMap(fn ($hatOutputs) => array_keys($hatOutputs ?? []))
@@ -657,9 +657,35 @@
                                 ->values()
                                 ->all();
                             $roles = !empty($configuredRoles) ? $configuredRoles : $outputRoles;
-                            $interactionCount = collect($outputs)
+
+                            $analysisMetrics = $metrics
+                                ?? ($exportPayload['metrics'] ?? [])
+                                ?? ($result['analysis_metrics'] ?? [])
+                                ?? ($state['analysis_metrics'] ?? []);
+
+                            $fallbackInteractionCount = collect($outputs)
                                 ->flatMap(fn ($hatOutputs) => collect($hatOutputs ?? [])->map(fn ($items) => count($items ?? [])))
                                 ->sum();
+
+                            $interactionCount = (int) (
+                                $analysisMetrics['agent_interactions_count']
+                                ?? ($result['agent_interactions_count'] ?? $fallbackInteractionCount)
+                            );
+
+                            $rolesCount = (int) (
+                                $analysisMetrics['roles_count']
+                                ?? count($roles)
+                            );
+
+                            $agentHatsCount = (int) (
+                                $analysisMetrics['agent_hats_count']
+                                ?? collect(array_keys($outputs))->filter(fn ($hat) => strtoupper((string) $hat) !== 'BLUE')->count()
+                            );
+
+                            $llmCallsCount = (int) (
+                                $analysisMetrics['llm_calls_count']
+                                ?? ($result['llm_calls_count'] ?? 0)
+                            );
                         @endphp
 
                         <script type="application/json" id="analysisResultJson">
@@ -675,8 +701,8 @@
                                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
                                     <div class="min-w-0 flex-1">
                                         <div class="text-slate-300 text-sm mb-2">Recommended path</div>
-                                        <div class="recommendation-value font-bold mb-3">{{ $recommendation }}</div>
-                                        <p class="text-slate-200 leading-8 max-w-3xl">
+                                        <div class="recommendation-value font-bold mb-4 text-slate-50">{{ $recommendation }}</div>
+                                        <p class="text-slate-200 leading-7 max-w-2xl">
                                             {{ $result['executive_summary'] ?? '' }}
                                         </p>
                                     </div>
@@ -694,7 +720,7 @@
 
                                         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                                             <div class="text-xs uppercase tracking-[0.16em] text-slate-400 mb-1">Total time</div>
-                                            <div class="text-xl font-semibold" id="analysisElapsedResult">Calculating...</div>
+                                            <div class="text-xl font-semibold" id="analysisElapsedResult" data-total-time>Calculating...</div>
                                         </div>
                                     </div>
                                 </div>
@@ -768,18 +794,21 @@
                                         <p class="text-sm text-slate-400 mb-1">Mode</p>
                                         <p class="text-xl font-semibold">{{ strtoupper($result['mode'] ?? '-') }}</p>
                                     </div>
+
                                     <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                                         <p class="text-sm text-slate-400 mb-1">Final Hat</p>
                                         <p class="text-xl font-semibold">{{ $result['final_hat'] ?? '-' }}</p>
                                     </div>
-                                    <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                                        <p class="text-sm text-slate-400 mb-1">Interactions</p>
-                                        <p class="text-xl font-semibold">{{ $interactionCount }}</p>
+
+                                    <div class="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4">
+                                        <p class="text-sm text-cyan-200 mb-1">Agent interactions</p>
+                                        <p class="text-2xl font-semibold text-cyan-50">{{ $interactionCount }}</p>
+                                        <p class="mt-1 text-xs text-cyan-200/80">Real role-by-hat outputs</p>
                                     </div>
 
                                     <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                                         <p class="text-sm text-slate-400 mb-1">Total time</p>
-                                        <p class="text-xl font-semibold" id="analysisElapsedOverview">Calculating...</p>
+                                        <p class="text-xl font-semibold" id="analysisElapsedOverview" data-total-time>Calculating...</p>
                                     </div>
                                 </div>
                             </div>
@@ -1434,6 +1463,7 @@
                 const state = payload.state || {};
                 const options = payload.options || {};
                 const outputs = state.outputs || {};
+                const metrics = exportData.metrics || payload.analysis_metrics || state.analysis_metrics || {};
                 const risks = state.risks || [];
                 const openQuestions = state.open_questions || [];
                 const nextSteps = state.next_steps || [];
@@ -1448,7 +1478,38 @@
                 const originalIdea = requestPayload.idea || state.idea || getCurrentIdeaText() || '';
                 const configuredRoles = requestPayload.roles || [];
 
-                const interactions = countInteractions(outputs);
+                const interactions = getMetricNumber(
+                    metrics,
+                    payload,
+                    state,
+                    'agent_interactions_count',
+                    countInteractions(outputs)
+                );
+
+                const rolesCount = getMetricNumber(
+                    metrics,
+                    payload,
+                    state,
+                    'roles_count',
+                    configuredRoles.length || extractRoleCodes(outputs).length
+                );
+
+                const agentHatsCount = getMetricNumber(
+                    metrics,
+                    payload,
+                    state,
+                    'agent_hats_count',
+                    countReasoningHats(outputs, state)
+                );
+
+                const llmCalls = getMetricNumber(
+                    metrics,
+                    payload,
+                    state,
+                    'llm_calls_count',
+                    String(mode).toLowerCase() === 'llm' ? interactions + 2 : 0
+                );
+
                 const totalTime = getDisplayedTotalTime();
 
                 function addPageIfNeeded(requiredSpace = 20) {
@@ -1595,7 +1656,7 @@
                     doc.text('Mode: ' + String(mode).toUpperCase(), page.marginX, 171);
                     doc.text('Confidence: ' + confidence, page.marginX, 179);
                     doc.text('Total time: ' + totalTime, page.marginX, 187);
-                    doc.text('Interactions: ' + interactions, page.marginX, 195);
+                    doc.text('Agent interactions: ' + interactions, page.marginX, 195);
 
                     if (metadata.generated_at) {
                         doc.text('Generated at: ' + metadata.generated_at, page.marginX, 203);
@@ -1736,12 +1797,29 @@
                 addCoverPage();
 
                 addSectionTitle('1. Executive Summary');
-                addKeyValue('Recommended path', recommendation);
+
                 addKeyValue('Confidence', confidence);
                 addKeyValue('Final thinking mode', finalHat);
                 addKeyValue('Total time', totalTime);
-                addKeyValue('Interactions', interactions);
-                addParagraph(executiveSummary);
+                addKeyValue('Agent interactions', interactions);
+
+                addParagraph('Recommended path', {
+                    fontSize: 9,
+                    bold: true,
+                    color: [71, 85, 105]
+                });
+
+                addParagraph(recommendation, {
+                    fontSize: 12,
+                    bold: true,
+                    lineHeight: 6,
+                    color: [15, 23, 42]
+                });
+
+                addParagraph(executiveSummary, {
+                    fontSize: 10,
+                    lineHeight: 5.5
+                });
 
                 if (originalIdea) {
                     addSectionTitle('2. Original Case');
@@ -1806,6 +1884,19 @@
                 return possibleTime || '-';
             }
 
+            function getMetricNumber(metrics, payload, state, key, fallback = 0) {
+                const value =
+                    metrics?.[key] ??
+                    payload?.[key] ??
+                    payload?.analysis_metrics?.[key] ??
+                    state?.analysis_metrics?.[key] ??
+                    fallback;
+
+                const number = Number(value);
+
+                return Number.isFinite(number) ? number : fallback;
+            }
+
             function countInteractions(outputs) {
                 let count = 0;
 
@@ -1818,6 +1909,18 @@
                 });
 
                 return count;
+            }
+
+            function countReasoningHats(outputs, state) {
+                const sequence = Array.isArray(state?.hat_sequence) ? state.hat_sequence : [];
+
+                if (sequence.length > 0) {
+                    return sequence.filter(hat => String(hat).toUpperCase() !== 'BLUE').length;
+                }
+
+                return Object.keys(outputs || {})
+                    .filter(hat => String(hat).toUpperCase() !== 'BLUE')
+                    .length;
             }
 
             function extractRoleCodes(outputs) {
