@@ -606,38 +606,40 @@
         @endif
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
-            <div class="xl:col-span-5 flex">
-                <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl h-full min-h-[560px] w-full flex flex-col">
-                    <p class="mb-6 text-lg leading-8 text-slate-100">
-                        Describe a strategic idea, opportunity, or dilemma in your own words.
-                        The system will interpret it, activate the relevant advisory roles,
-                        and return a structured recommendation.
-                    </p>
+            @unless($result)
+                <div class="xl:col-span-5 flex">
+                    <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl h-full min-h-[560px] w-full flex flex-col">
+                        <p class="mb-6 text-lg leading-8 text-slate-100">
+                            Describe a strategic idea, opportunity, or dilemma in your own words.
+                            The system will interpret it, activate the relevant advisory roles,
+                            and return a structured recommendation.
+                        </p>
 
-                    <form method="POST" action="{{ route('cognitive-hat.analyze') }}" class="flex flex-1 flex-col gap-5" id="analysisForm">
-                        @csrf
+                        <form method="POST" action="{{ route('cognitive-hat.analyze') }}" class="flex flex-1 flex-col gap-5" id="analysisForm">
+                            @csrf
 
-                        <div class="flex flex-1 flex-col">
-                            <textarea
-                                name="idea"
-                                rows="12"
-                                class="w-full min-h-[330px] flex-1 rounded-3xl bg-slate-900/70 border border-white/10 px-5 py-4 text-white leading-8"
-                                placeholder="Example: We are a small company with limited technical and economic resources, but we see an opportunity in SMEs in Spain that need automation..."
-                            >{{ old('idea') }}</textarea>
-                        </div>
+                            <div class="flex flex-1 flex-col">
+                                <textarea
+                                    name="idea"
+                                    rows="12"
+                                    class="w-full min-h-[330px] flex-1 rounded-3xl bg-slate-900/70 border border-white/10 px-5 py-4 text-white leading-8"
+                                    placeholder="Example: We are a small company with limited technical and economic resources, but we see an opportunity in SMEs in Spain that need automation..."
+                                >{{ old('idea') }}</textarea>
+                            </div>
 
-                        <button
-                            type="submit"
-                            id="analysisSubmitBtn"
-                            class="mt-auto w-full rounded-2xl bg-cyan-300 text-slate-950 font-semibold px-5 py-4 hover:bg-cyan-200 transition"
-                        >
-                            Run analysis
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                id="analysisSubmitBtn"
+                                class="mt-auto w-full rounded-2xl bg-cyan-300 text-slate-950 font-semibold px-5 py-4 hover:bg-cyan-200 transition"
+                            >
+                                Run analysis
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            @endunless
 
-            <div class="xl:col-span-7 flex">
+            <div class="{{ $result ? 'xl:col-span-12' : 'xl:col-span-7' }} flex">
                 <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl h-full min-h-[560px] w-full">
                     @if($result)
                         @php
@@ -693,9 +695,18 @@
                         </script>
 
                         <div class="mb-8">
-                            <p class="text-sm uppercase tracking-[0.2em] text-cyan-300 mb-3">
-                                Primary recommendation
-                            </p>
+                            <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <p class="text-sm uppercase tracking-[0.2em] text-cyan-300">
+                                    Primary recommendation
+                                </p>
+
+                                <a
+                                    href="{{ route('cognitive-hat.index') }}"
+                                    class="inline-flex items-center justify-center rounded-2xl border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10 transition"
+                                >
+                                    New analysis
+                                </a>
+                            </div>
 
                             <div class="rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-6">
                                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
