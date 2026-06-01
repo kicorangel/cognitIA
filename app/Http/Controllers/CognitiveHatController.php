@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CognitiveHatAnalysisLog;
 use App\Models\ThinkingRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CognitiveHatController extends Controller
 {
@@ -34,13 +36,23 @@ class CognitiveHatController extends Controller
                 ->with('error', 'No active thinking roles found. Please create or activate at least one role before running the analysis.');
         }
 
+        $rolesSnapshot = $roles->map(fn ($role) => [
+            'id' => $role->id,
+            'code' => $role->code,
+            'name' => $role->name,
+            'title' => $role->title,
+            'profile' => $role->profile_prompt,
+            'sort_order' => $role->sort_order,
+            'is_active' => $role->is_active,
+        ])->values()->all();
+
         $payload = [
             'idea' => $request->input('idea'),
-            'roles' => $roles->map(fn ($role) => [
-                'code' => $role->code,
-                'name' => $role->name,
-                'title' => $role->title,
-                'profile' => $role->profile_prompt,
+            'roles' => collect($rolesSnapshot)->map(fn ($role) => [
+                'code' => $role['code'],
+                'name' => $role['name'],
+                'title' => $role['title'],
+                'profile' => $role['profile'],
             ])->values()->all(),
         ];
 
@@ -58,18 +70,40 @@ class CognitiveHatController extends Controller
             $result = $response->json();
             $metrics = $this->extractAnalysisMetrics($result, $payload);
 
+            $user = auth()->user();
+
+            $userSnapshot = $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ] : null;
+
             $exportPayload = [
                 'metadata' => [
                     'generated_by' => 'cognitIA',
                     'generated_at' => now()->toIso8601String(),
                     'user_id' => auth()->id(),
+                    'user' => $userSnapshot,
                     'model_key' => 'cognitive_hat',
                     'engine_url' => $apiUrl,
+                    'mode' => $result['mode'] ?? null,
+                    'run_id' => $result['run_id'] ?? null,
                 ],
                 'request' => $payload,
+                'roles_snapshot' => $rolesSnapshot,
                 'response' => $result,
                 'metrics' => $metrics,
             ];
+
+            $this->storeAnalysisLog(
+                requestPayload: $payload,
+                responsePayload: $result,
+                metricsPayload: $metrics,
+                exportPayload: $exportPayload,
+                rolesSnapshot: $rolesSnapshot,
+                userSnapshot: $userSnapshot,
+                engineUrl: $apiUrl
+            );
 
             return view('cognitive-hat.index', [
                 'result' => $result,
@@ -80,6 +114,45 @@ class CognitiveHatController extends Controller
             return back()
                 ->withInput()
                 ->with('error', 'Connection error with the engine: ' . $e->getMessage());
+        }
+    }
+
+    private function storeAnalysisLog(
+    array $requestPayload,
+    array $responsePayload,
+    array $metricsPayload,
+    array $exportPayload,
+    array $rolesSnapshot,
+    ?array $userSnapshot,
+    string $engineUrl
+    ): void {
+        try {
+            CognitiveHatAnalysisLog::create([
+                'user_id' => auth()->id(),
+                'model_key' => 'cognitive_hat',
+                'run_id' => $responsePayload['run_id'] ?? null,
+
+                'idea' => $requestPayload['idea'] ?? null,
+
+                'user_snapshot' => $userSnapshot,
+                'roles_snapshot' => $rolesSnapshot,
+
+                'request_payload' => $requestPayload,
+                'response_payload' => $responsePayload,
+                'metrics_payload' => $metricsPayload,
+                'export_payload' => $exportPayload,
+
+                'engine_url' => $engineUrl,
+                'mode' => $responsePayload['mode'] ?? null,
+                'final_hat' => $responsePayload['final_hat'] ?? null,
+                'decision_confidence' => $responsePayload['decision_confidence'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Could not store cognitive hat analysis log.', [
+                'user_id' => auth()->id(),
+                'run_id' => $responsePayload['run_id'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
